@@ -1,26 +1,18 @@
-
 import streamlit as st
 import pandas as pd
 from io import StringIO
 import random
 
 
-async def initial():
+def main():
     st.title("Olá, seja bem vindo!")
     st.divider()
     st.subheader("Clique no botão abaixo para começar!")
 
-    if 'perguntas' not in st.session_state:
-        st.session_state.perguntas = []
-
-    btn = st.button("Iniciar")
-    if btn:
-        uploadfile()
+    uploadfile()
 
 
 def uploadfile():
-    if "perguntas" is not st.session_state:
-        st.session_state.perguntas = {}
     try:
         with st.form("insert-json-file-form"):
             st.write("Envie o questionário")
@@ -30,63 +22,71 @@ def uploadfile():
             submitted = st.form_submit_button("Enviar")
             if submitted:
                 st.session_state.perguntas = df.perguntas
-                st.write(st.session_state.perguntas)
+        chatbot()
     except:
         st.write('Selecione um arquivo')
 
 
-def main():
-    # Initialize chat history
-    prompt = ''
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
+def question(question_number, index):
+    if question_number >= 1:
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
 
-    if "respostas" not in st.session_state:
-        st.session_state.respostas = {}
-
-    # Display chat messages from history on app rerun
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-
-    # React to user input
-    for pergunta in st.session_state.perguntas:
-
+        pergunta = st.session_state.perguntas[index]
         if pergunta["tipo"] == "aberta":
             with st.chat_message("assistant"):
                 st.write(pergunta['texto'])
 
-            while prompt := st.text_input("E ai?", key=[random.randint(1, 1000)]):
-                st.stop()
-
-            with st.chat_message("user"):
-                st.markdown(prompt)
+            user_input = st.chat_input("E ai?", key=f"user_input + {random.randint(1, 100)}")
+            if user_input:
+                with st.chat_message("user"):
+                    st.write(user_input)
 
         elif pergunta["tipo"] == "multipla_escolha":
             options = []
             for option in pergunta["opcoes"]:
                 options.append(option)
+
             with st.chat_message("assistant"):
-                prompt = st.radio(pergunta['texto'], options=options, key=[random.randint(1, 1000)])
-            if prompt or asyncio.sleep(100):
+                user_input = st.radio(pergunta['texto'], options=options, key=[random.randint(1, 1000)], index=None)
+            if user_input:
                 with st.chat_message("user"):
-                    st.markdown(prompt)
+                    st.write(user_input)
 
         else:
             with st.chat_message("assistant"):
-                prompt = st.radio(pergunta['texto'], options=["Verdadeiro", "Falso"], key=[random.randint(1, 1000)])
-            if prompt or asyncio.sleep(100):
+                user_input = st.radio(pergunta['texto'], options=["Verdadeiro", "Falso"], key=[random.randint(1, 1000)],
+                                      index=None)
+            if user_input:
                 with st.chat_message("user"):
-                    st.markdown(prompt)
+                    st.write(user_input)
+        if user_input:
+            st.session_state.respostas.append({pergunta["text"]: user_input})
+            st.session_state.messages.append({"role": "user", "content": user_input})
+            st.session_state.messages.append({"role": "assistant", "content": pergunta['texto']})
+            return question(question_number-1, index+1)
+    else:
+        st.write("Faça o download do seu questionário")
+        df = pd.DataFrame(st.session_state.messages)
+        json_file = df.to_json(orient="records")
+        st.download_button("Clique aqui para baixar", data=json_file, file_name="questionario_respondido.json")
 
-        # Add user message to chat history
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        # Add assistant response to chat history
-        st.session_state.messages.append({"role": "assistant", "content": pergunta['texto']})
+
+def chatbot():
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+    if "respostas" not in st.session_state:
+        st.session_state.respostas = []
+
+    if "perguntas" not in st.session_state:
+        st.session_state.perguntas = {}
+
+    question(len(st.session_state.perguntas), 0)
 
 
 if __name__ == '__main__':
-    import asyncio
-
-    uploadfile()
     main()
+
+
