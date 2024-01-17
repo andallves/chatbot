@@ -35,13 +35,15 @@ def uploadfile():
         st.write('Selecione um arquivo')
 
 
-def wait_user():
-    return
-async def main():
+def main():
     # Initialize chat history
     prompt = ''
     if "messages" not in st.session_state:
         st.session_state.messages = []
+
+    if "respostas" not in st.session_state:
+        st.session_state.respostas = {}
+
     # Display chat messages from history on app rerun
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
@@ -49,13 +51,16 @@ async def main():
 
     # React to user input
     for pergunta in st.session_state.perguntas:
+
         if pergunta["tipo"] == "aberta":
             with st.chat_message("assistant"):
-                st.markdown(pergunta['texto'])
+                st.write(pergunta['texto'])
 
-            if prompt := st.chat_input("E ai?", key=[random.randint(1, 1000)], on_submit=True):
-                with st.chat_message("user"):
-                    st.markdown(prompt)
+            while prompt := st.text_input("E ai?", key=[random.randint(1, 1000)]):
+                st.stop()
+
+            with st.chat_message("user"):
+                st.markdown(prompt)
 
         elif pergunta["tipo"] == "multipla_escolha":
             options = []
@@ -65,7 +70,7 @@ async def main():
                 prompt = st.radio(pergunta['texto'], options=options, key=[random.randint(1, 1000)])
             if prompt or asyncio.sleep(100):
                 with st.chat_message("user"):
-                        st.markdown(prompt)
+                    st.markdown(prompt)
 
         else:
             with st.chat_message("assistant"):
@@ -76,7 +81,6 @@ async def main():
 
         # Add user message to chat history
         st.session_state.messages.append({"role": "user", "content": prompt})
-
         # Add assistant response to chat history
         st.session_state.messages.append({"role": "assistant", "content": pergunta['texto']})
 
@@ -85,4 +89,4 @@ if __name__ == '__main__':
     import asyncio
 
     uploadfile()
-    asyncio.run(main())
+    main()
