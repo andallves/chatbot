@@ -12,11 +12,11 @@ def ask_a_question(question, index):
     if question['tipo'] == 'multipla_escolha':
         text = question['texto']
         options = question['opcoes']
-        return st.radio(text, options, key=index, index=None)
+        return st.radio(text, options, key=index)
     elif question['tipo'] == 'verdadeiro_falso':
         text = question['texto']
         options = ['Verdadeiro', 'Falso']
-        return st.radio(text, options, key=index, index=None)
+        return st.radio(text, options, key=index)
     else:
         return st.text_input(question['texto'], key=index)
 
@@ -27,14 +27,13 @@ def verify_answer(correct_answer, user_answer):
 
 def send_answer(question_answered, user_input):
     global score_per_question
-
     if len(st.session_state.questions) > 0:
         score_per_question = 100 / len(st.session_state.questions)
 
-    if verify_answer(question_answered['resposta_correta'], user_input):
-        st.session_state.score += score_per_question
+    st.session_state.answers.append({"pergunta": questionary["texto"], "resposta": user_input})
+    is_correct = verify_answer(question_answered['resposta_correta'], user_input)
+    st.session_state.score += score_per_question if is_correct else 0
 
-    st.session_state.answers.append({"pergunta": question["texto"], "resposta": user_input})
     st.session_state.index += 1
 
 
@@ -52,7 +51,6 @@ if "index" not in st.session_state:
 
 score_per_question = 1
 
-
 st.title("Olá, seja bem vindo!", )
 st.divider()
 
@@ -63,14 +61,13 @@ if json_uploaded is not None:
 
     questions_length = len(all_questions)
     if questions_length >= 0 and st.session_state.index < len(all_questions):
-        question = all_questions["perguntas"][st.session_state.index]
+        questionary = all_questions["perguntas"][st.session_state.index]
 
-        with st.form("questionary"):
-            input_answer = ask_a_question(question, question["id"])
-
-            if st.session_state.index < len(all_questions['perguntas']):
-                st.form_submit_button("Enviar", on_click=send_answer, kwargs=dict(question_answered=question,
-                                                                                  user_input=str(input_answer)))
+        input_answer = ask_a_question(questionary, questionary["id"])
+        if input_answer:
+            st.button("Enviar", on_click=send_answer, args=(questionary, str(input_answer)))
+        else:
+            st.write("Após responder digite enter!")
 
     else:
         st.subheader(f"Sua pontuação é: {st.session_state.score}")
@@ -82,9 +79,3 @@ if json_uploaded is not None:
         st.download_button("Clique aqui para baixar", data=file, file_name="questionario_respondido.json")
 else:
     st.session_state.index = 0
-
-
-
-
-
-
