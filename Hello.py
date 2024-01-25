@@ -26,9 +26,9 @@ def verify_answer(correct_answer, user_answer):
 
 
 def send_answer(question_answered, user_input):
-    global score_per_question
-    if len(st.session_state.questions) > 0:
-        score_per_question = 100 / len(st.session_state.questions)
+    score_per_question = 1
+    if len(all_questions) > 0:
+        score_per_question = 100 / len(all_questions)
 
     st.session_state.answers.append({"pergunta": questionary["texto"], "resposta": user_input})
     is_correct = verify_answer(question_answered['resposta_correta'], user_input)
@@ -49,7 +49,6 @@ if "score" not in st.session_state:
 if "index" not in st.session_state:
     st.session_state.index = 0
 
-score_per_question = 1
 
 st.title("Olá, seja bem vindo!", )
 st.divider()
@@ -70,12 +69,15 @@ if json_uploaded is not None:
             st.write("Após responder digite enter!")
 
     else:
-        st.subheader(f"Sua pontuação é: {st.session_state.score}")
+        st.subheader(f"Sua pontuação é: {st.session_state.score:.2f}")
         st.write("Faça o download do seu questionário")
+        st.session_state.answers.append({"pontuação": f"{st.session_state.score:.2f}"})
         file = json.dumps(st.session_state.answers, indent=2, ensure_ascii=False)
 
         st.session_state.index = 0
 
         st.download_button("Clique aqui para baixar", data=file, file_name="questionario_respondido.json")
 else:
+    st.session_state.score = 0.0
+    st.session_state.answers = []
     st.session_state.index = 0
